@@ -1,0 +1,18 @@
+{
+  "name": "json-server-api",
+  "version": "1.0.0",
+  "description": "Simple Fake API",
+  "main": "main.js",
+  "scripts": {
+    "json:server": "json-server --watch ./database.json",
+    "auth:only": "json-server --watch ./auth.json",
+    "start": "node server.js"
+  },
+  "author": "ME:)",
+  "license": "ISC",
+  "dependencies": {
+    "json-server": "^0.12.2",
+    "jsonwebtoken": "^8.3.0",
+    "lodash": "^4.17.11"
+  }
+}
