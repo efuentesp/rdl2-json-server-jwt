@@ -51,24 +51,74 @@ function findUserInfo(email) {
     permissions.push(_.find(authdb.permissions, p => p.id === pa.permissionId));
   });
   const user_info = {
-    user: { username: user.username, email: user.email, role: role.name },
+    user: {
+      username: user.username,
+      display_name: user.display_name,
+      email: user.email,
+      user_enabled: user.enabled,
+      role: role.name,
+      role_enabled: role.enabled
+    },
     permissions
   };
 
   return user_info;
 }
 
-server.post("/auth/login", (req, res) => {
+function isPermissionFound(token, permission) {
+  const permission_found = _.find(
+    token.permissions,
+    p => p.code === permission
+  );
+  return typeof permission_found == "undefined" ? false : true;
+}
+
+function hasAuthority(resource, operation, user_info) {
+  const permission = resource + ":" + operation;
+  const all_operations = resource + ":*";
+  const superuser = "*:*";
+
+  //console.log(permission);
+
+  if (!isPermissionFound(user_info, permission)) {
+    if (!isPermissionFound(user_info, all_operations)) {
+      if (!isPermissionFound(user_info, superuser)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+server.post("/auth/v1/login", (req, res) => {
   const { email, password } = req.body;
   if (isAuthenticated({ email, password }) === false) {
-    const status = 401;
-    const message = "Incorrect email or password";
-    res.status(status).json({ status, message });
+    res
+      .status(401)
+      .json({ status: 401, message: "Incorrect email or password" });
     return;
   }
   const user_info = findUserInfo(email);
-  const access_token = createToken(user_info);
+  const access_token = createToken(user_info.user);
   res.status(200).json({ access_token });
+});
+
+server.get("/auth/v1/user", (req, res) => {
+  if (
+    req.headers.authorization === undefined ||
+    req.headers.authorization.split(" ")[0] !== "Bearer"
+  ) {
+    res
+      .status(401)
+      .json({ status: 401, message: "Error in authorization format" });
+    return;
+  }
+
+  const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
+  const user_info = findUserInfo(decoded_token.email);
+  res
+    .status(200)
+    .json({ user: user_info.user, permissions: user_info.permissions });
 });
 
 server.use(/^(?!\/auth).*$/, (req, res, next) => {
@@ -76,22 +126,71 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
     req.headers.authorization === undefined ||
     req.headers.authorization.split(" ")[0] !== "Bearer"
   ) {
-    const status = 401;
-    const message = "Error in authorization format";
-    res.status(status).json({ status, message });
+    res
+      .status(401)
+      .json({ status: 401, message: "Error in authorization format" });
     return;
   }
   try {
-    verifyToken(req.headers.authorization.split(" ")[1]);
+    let resources = [];
+    const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
+    resources.push(req._parsedOriginalUrl.path.split("/")[3].toUpperCase());
+    console.log(req._parsedOriginalUrl.path.split("/"));
+    console.log(req._parsedOriginalUrl.path.split("/").length);
+    if (req._parsedOriginalUrl.path.split("/").length > 5) {
+      if (req._parsedOriginalUrl.path.split("/")[5] !== "") {
+        resources.push(req._parsedOriginalUrl.path.split("/")[5].toUpperCase());
+      }
+    }
+
+    const user_info = findUserInfo(decoded_token.email);
+    //console.log(decoded_token);
+
+    //console.log(req._parsedOriginalUrl.path);
+    //console.log(req.headers);
+    //console.log(req.method);
+    //console.log(req.url);
+    //console.log(req.params);
+    //console.log(req.query);
+    //console.log(req.body);
+
+    let operation;
+    switch (req.method) {
+      case "GET":
+        operation = "READ";
+        break;
+      case "POST":
+        operation = "CREATE";
+        break;
+      case "PUT":
+        operation = "UPDATE";
+        break;
+      case "DELETE":
+        operation = "DELETE";
+        break;
+      default:
+        operation = "UNKNOWN";
+    }
+
+    resources.forEach(r => {
+      if (!hasAuthority(r, operation, user_info)) {
+        res.status(404).json({
+          status: 404,
+          message: `You don't have permission (${r}:${operation})`
+        });
+        return;
+      }
+    });
+
     next();
   } catch (err) {
-    const status = 401;
-    const message = "Error access_token is revoked";
-    res.status(status).json({ status, message });
+    res
+      .status(401)
+      .json({ status: 401, message: "Error access_token is revoked" });
   }
 });
 
-server.use(router);
+server.use("/api/v1", router);
 
 server.listen(3000, () => {
   console.log("Run Auth API Server (port: 3000)");
