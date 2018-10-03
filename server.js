@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const jsonServer = require("json-server");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
+const url = require("url");
 
 const server = jsonServer.create();
 const router = jsonServer.router("./database.json");
@@ -134,25 +135,16 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
   try {
     let resources = [];
     const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
-    resources.push(req._parsedOriginalUrl.path.split("/")[3].toUpperCase());
-    console.log(req._parsedOriginalUrl.path.split("/"));
-    console.log(req._parsedOriginalUrl.path.split("/").length);
-    if (req._parsedOriginalUrl.path.split("/").length > 5) {
-      if (req._parsedOriginalUrl.path.split("/")[5] !== "") {
-        resources.push(req._parsedOriginalUrl.path.split("/")[5].toUpperCase());
+
+    resources.push(req._parsedUrl.path.split("/")[3].toUpperCase());
+
+    if (req._parsedUrl.path.split("/").length > 5) {
+      if (req._parsedUrl.path.split("/")[5] !== "") {
+        resources.push(req._parsedUrl.path.split("/")[5].toUpperCase());
       }
     }
 
     const user_info = findUserInfo(decoded_token.email);
-    //console.log(decoded_token);
-
-    //console.log(req._parsedOriginalUrl.path);
-    //console.log(req.headers);
-    //console.log(req.method);
-    //console.log(req.url);
-    //console.log(req.params);
-    //console.log(req.query);
-    //console.log(req.body);
 
     let operation;
     switch (req.method) {
