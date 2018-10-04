@@ -137,15 +137,15 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
     const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
     const url_path = req._parsedUrl.path;
     const adr = `http://${req.headers.host}${url_path}`;
-    console.log(adr);
+    //console.log(adr);
 
     let q = url.parse(adr, true);
-    console.log(q.host);
-    console.log(q.pathname);
-    console.log(q.search);
-    console.log(q.query);
-    console.log(q.query._embed);
-    console.log(q.query._expand);
+    //console.log(q.host);
+    //console.log(q.pathname);
+    //console.log(q.search);
+    //console.log(q.query);
+    //console.log(q.query._embed);
+    //console.log(q.query._expand);
 
     resources.push(q.pathname.split("/")[3].toUpperCase());
 
