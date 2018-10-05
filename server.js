@@ -96,12 +96,12 @@ function hasAuthority(resource, operation, user_info) {
   return true;
 }
 
-server.post("/auth/v1/login", (req, res) => {
+server.post("/api/v1/auth/login", (req, res) => {
   const { email, password } = req.body;
   if (isAuthenticated({ email, password }) === false) {
     res
       .status(401)
-      .json({ status: 401, message: "Incorrect email or password" });
+      .json({ status: 401, message: "Error: Incorrect email or password" });
     return;
   }
   const user_info = findUserInfo(email);
@@ -109,14 +109,15 @@ server.post("/auth/v1/login", (req, res) => {
   res.status(200).json({ access_token });
 });
 
-server.get("/auth/v1/info", (req, res) => {
+server.get("/api/v1/auth/info", (req, res) => {
   if (
     req.headers.authorization === undefined ||
     req.headers.authorization.split(" ")[0] !== "Bearer"
   ) {
-    res
-      .status(401)
-      .json({ status: 401, message: "Error in authorization format" });
+    res.status(400).json({
+      status: 400,
+      message: "Error: Access token is missing or invalid"
+    });
     return;
   }
 
@@ -130,7 +131,7 @@ server.get("/auth/v1/info", (req, res) => {
   } catch (err) {
     res
       .status(401)
-      .json({ status: 401, message: "Error access_token is revoked" });
+      .json({ status: 401, message: "Error: Access token is revoked" });
   }
 });
 
@@ -139,9 +140,10 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
     req.headers.authorization === undefined ||
     req.headers.authorization.split(" ")[0] !== "Bearer"
   ) {
-    res
-      .status(401)
-      .json({ status: 401, message: "Error in authorization format" });
+    res.status(400).json({
+      status: 400,
+      message: "Error: Access token is missing or invalid"
+    });
     return;
   }
   try {
@@ -200,7 +202,7 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
   } catch (err) {
     res
       .status(401)
-      .json({ status: 401, message: "Error access_token is revoked" });
+      .json({ status: 401, message: "Error: Access token is revoked" });
   }
 });
 
@@ -232,7 +234,7 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
 //   res.status(200).json({ permissions });
 // });
 
-server.get("/auth/v1/roles/:roleId/permissions", (req, res) => {
+server.get("/api/v1/auth/roles/:roleId/permissions", (req, res) => {
   let permissions = [];
   const permission_assignment = _.filter(
     authdb.permission_assignment,
@@ -244,15 +246,9 @@ server.get("/auth/v1/roles/:roleId/permissions", (req, res) => {
   res.status(200).json({ permissions });
 });
 
-// router.render = (req, res) => {
-//   console.log(req.headers);
-//   let data = res.locals.data;
-//   data.id = data.id.toString();
-//   res.jsonp(data);
-// };
-
+server.use("/api/v1/auth", router_auth);
 server.use("/api/v1", router);
-server.use("/api/auth/v1", router_auth);
+//server.use("/api/auth/v1", router_auth);
 
 server.listen(3000, () => {
   console.log("Run Auth API Server (port: 3000)");
