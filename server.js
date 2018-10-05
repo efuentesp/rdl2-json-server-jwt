@@ -3,11 +3,14 @@ const bodyParser = require("body-parser");
 const jsonServer = require("json-server");
 const jwt = require("jsonwebtoken");
 const _ = require("lodash");
+const lodashId = require("lodash-id");
 const url = require("url");
 
 const server = jsonServer.create();
 const router = jsonServer.router("./database.json");
+const router_auth = jsonServer.router("./auth.json");
 const authdb = JSON.parse(fs.readFileSync("./auth.json", "UTF-8"));
+const bizdb = JSON.parse(fs.readFileSync("./database.json", "UTF-8"));
 
 server.use(bodyParser.urlencoded({ extended: true }));
 server.use(bodyParser.json());
@@ -16,6 +19,8 @@ server.use(jsonServer.defaults());
 const SECRET_KEY = "123456789";
 
 const expiresIn = "1h";
+
+_.mixin(lodashId);
 
 // Create a token from a payload
 function createToken(payload) {
@@ -104,7 +109,7 @@ server.post("/auth/v1/login", (req, res) => {
   res.status(200).json({ access_token });
 });
 
-server.get("/auth/v1/user", (req, res) => {
+server.get("/auth/v1/info", (req, res) => {
   if (
     req.headers.authorization === undefined ||
     req.headers.authorization.split(" ")[0] !== "Bearer"
@@ -115,11 +120,18 @@ server.get("/auth/v1/user", (req, res) => {
     return;
   }
 
-  const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
-  const user_info = findUserInfo(decoded_token.email);
-  res
-    .status(200)
-    .json({ user: user_info.user, permissions: user_info.permissions });
+  try {
+    const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
+
+    const user_info = findUserInfo(decoded_token.email);
+    res
+      .status(200)
+      .json({ user: user_info.user, permissions: user_info.permissions });
+  } catch (err) {
+    res
+      .status(401)
+      .json({ status: 401, message: "Error access_token is revoked" });
+  }
 });
 
 server.use(/^(?!\/auth).*$/, (req, res, next) => {
@@ -137,23 +149,14 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
     const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
     const url_path = req._parsedUrl.path;
     const adr = `http://${req.headers.host}${url_path}`;
-    //console.log(adr);
 
     let q = url.parse(adr, true);
-    //console.log(q.host);
-    //console.log(q.pathname);
-    //console.log(q.search);
-    //console.log(q.query);
-    //console.log(q.query._embed);
-    //console.log(q.query._expand);
 
-    resources.push(q.pathname.split("/")[3].toUpperCase());
-
-    if (q.pathname.split("/").length > 5) {
-      if (q.pathname.split("/")[5] !== "") {
-        resources.push(q.pathname.split("/")[5].toUpperCase());
-      }
-    }
+    const auth_entities = Object.keys(authdb);
+    const biz_entities = Object.keys(bizdb);
+    const entities = _.union(auth_entities, biz_entities);
+    const pathname_tokens = q.pathname.split("/");
+    resources = _.intersection(entities, pathname_tokens);
 
     if (q.query._embed !== undefined) {
       resources.push(q.query._embed.toUpperCase());
@@ -184,10 +187,10 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
     }
 
     resources.forEach(r => {
-      if (!hasAuthority(r, operation, user_info)) {
+      if (!hasAuthority(r.toUpperCase(), operation, user_info)) {
         res.status(404).json({
           status: 404,
-          message: `You don't have permission (${r}:${operation})`
+          message: `You don't have permission (${r.toUpperCase()}:${operation})`
         });
         return;
       }
@@ -201,7 +204,55 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
   }
 });
 
+// server.get("/auth/v1/users", (req, res) => {
+//   const users = _.filter(authdb.users);
+//   res.status(200).json({ users });
+// });
+
+// server.post("/auth/v1/users", (req, res) => {
+//   const { username, display_name, email, password, enabled, roleId } = req.body;
+//   const user = _.insert(authdb.users, {
+//     username,
+//     display_name,
+//     email,
+//     password,
+//     enabled,
+//     roleId
+//   });
+//   res.status(200).json({ user });
+// });
+
+// server.get("/auth/v1/roles", (req, res) => {
+//   const roles = _.filter(authdb.roles);
+//   res.status(200).json({ roles });
+// });
+
+// server.get("/auth/v1/permissions", (req, res) => {
+//   const permissions = _.filter(authdb.permissions);
+//   res.status(200).json({ permissions });
+// });
+
+server.get("/auth/v1/roles/:roleId/permissions", (req, res) => {
+  let permissions = [];
+  const permission_assignment = _.filter(
+    authdb.permission_assignment,
+    a => a.roleId.toString() === req.params.roleId.toString()
+  );
+  permission_assignment.forEach(pa => {
+    permissions.push(_.find(authdb.permissions, p => p.id === pa.permissionId));
+  });
+  res.status(200).json({ permissions });
+});
+
+// router.render = (req, res) => {
+//   console.log(req.headers);
+//   let data = res.locals.data;
+//   data.id = data.id.toString();
+//   res.jsonp(data);
+// };
+
 server.use("/api/v1", router);
+server.use("/api/auth/v1", router_auth);
 
 server.listen(3000, () => {
   console.log("Run Auth API Server (port: 3000)");
