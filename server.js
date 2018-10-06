@@ -181,6 +181,9 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
       case "PUT":
         operation = "UPDATE";
         break;
+      case "PATCH":
+        operation = "UPDATE";
+        break;
       case "DELETE":
         operation = "DELETE";
         break;
