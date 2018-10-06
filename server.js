@@ -12,6 +12,11 @@ const router_auth = jsonServer.router("./auth.json");
 const authdb = JSON.parse(fs.readFileSync("./auth.json", "UTF-8"));
 const bizdb = JSON.parse(fs.readFileSync("./database.json", "UTF-8"));
 
+const user_schema = require("./schemas/users");
+const role_schema = require("./schemas/roles");
+const permission_schema = require("./schemas/permissions");
+const permission_assignment_schema = require("./schemas/permission_assignment");
+
 server.use(bodyParser.urlencoded({ extended: true }));
 server.use(bodyParser.json());
 server.use(jsonServer.defaults());
@@ -200,6 +205,82 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
         return;
       }
     });
+
+    let error_messages = [];
+
+    let validation_result = { error: null, value: null };
+    if (req.method === "POST" || req.method === "PUT") {
+      switch (resources[0]) {
+        case "users":
+          validation_result = user_schema.validate(req.body);
+          if (validation_result.error === null) {
+            const role = _.find(authdb.roles, r => r.id === req.body.roleId);
+            if (role === undefined) {
+              error_messages.push(
+                `Role id "${req.body.roleId}" doesn't exist.`
+              );
+              res.status(400).json({
+                status: 400,
+                message: error_messages
+              });
+              return;
+            }
+          }
+          break;
+
+        case "roles":
+          validation_result = role_schema.validate(req.body);
+          break;
+
+        case "permissions":
+          validation_result = permission_schema.validate(req.body);
+          break;
+
+        case "permission_assignment":
+          validation_result = permission_assignment_schema.validate(req.body);
+          if (validation_result.error === null) {
+            const role = _.find(authdb.roles, r => r.id === req.body.roleId);
+            if (role === undefined) {
+              error_messages.push(
+                `Role id "${req.body.roleId}" doesn't exist.`
+              );
+              res.status(400).json({
+                status: 400,
+                message: error_messages
+              });
+              return;
+            }
+            const permission = _.find(
+              authdb.permissions,
+              p => p.id === req.body.permissionId
+            );
+            if (permission === undefined) {
+              error_messages.push(
+                `Permission id "${req.body.permissionId}" doesn't exist.`
+              );
+              res.status(400).json({
+                status: 400,
+                message: error_messages
+              });
+              return;
+            }
+          }
+          break;
+      }
+    }
+
+    if (validation_result.error !== null) {
+      validation_result.error.details.forEach(err => {
+        error_messages.push(err.message);
+      });
+      console.log(error_messages);
+
+      res.status(400).json({
+        status: 400,
+        message: error_messages
+      });
+      return;
+    }
 
     next();
   } catch (err) {

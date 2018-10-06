@@ -11,6 +11,7 @@
   "author": "ME:)",
   "license": "ISC",
   "dependencies": {
+    "joi": "^13.7.0",
     "json-server": "^0.12.2",
     "jsonwebtoken": "^8.3.0",
     "lodash": "^4.17.11",
