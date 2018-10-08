@@ -1,0 +1,768 @@
+openapi: 3.0.0
+info:
+  version: "1.0.0"
+  title: "API Proyecto 01"
+  description: "API de la Aplicación Proyecto 01"
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Prototype Server
+  - url: http://java.proyecto01:8080/api/v1
+    description: Java Server
+  - url: http://net.proyecto01:80/api/v1
+    description: Net Server
+
+tags:
+  - name: "security"
+    description: "Servicios de Autenticación y Autorización"
+  - name: "users"
+    description: "Servicios para la Administración de Usuarios"
+  - name: "roles"
+    description: "Servicios para la Administración de Roles"
+  - name: "permissions"
+    description: "Servicios para la Administración de Permisos"
+  - name: "permission_assignment"
+    description: "Servicios para la Administración de Permisos asignados a los Roles"
+  - name: "products"
+    description: "Servicios para la Administración de Producto"
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - "security"
+      description: Login de acceso a la aplicación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Login"
+      responses:
+        200:
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Token"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/profile:
+    get:
+      tags:
+        - "security"
+      description: Obtiene Perfil del usuario y sus permisos
+      responses:
+        200:
+          description: User Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPermissions"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/roles/{id}/permissions:
+    get:
+      tags:
+        - "security"
+      description: Obtiene los Permisios de un Rol particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Role's Permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Permission"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/users:
+    get:
+      tags:
+        - "users"
+      description: Obtiene todos los Usuarios
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+      responses:
+        200:
+          description: Usuarios encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    post:
+      tags:
+        - "users"
+      description: Agrega un nuevo Usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        200:
+          description: Usuario agregado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/users/{id}:
+    get:
+      tags:
+        - "users"
+      description: Obtiene el la información de un Usuario particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    put:
+      tags:
+        - "users"
+      description: Actualiza la información completa de un Usuario particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    patch:
+      tags:
+        - "users"
+      description: Actualiza la información parcial de un Usuario particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/User"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    delete:
+      tags:
+        - "users"
+      description: Elimina la información de un Usuario particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Usuario eliminado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/roles:
+    get:
+      tags:
+        - "roles"
+      description: Obtiene todos los Roles
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+      responses:
+        200:
+          description: Roles encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    post:
+      tags:
+        - "roles"
+      description: Agrega un nuevo Rol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Role"
+      responses:
+        200:
+          description: Rol agregado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/roles/{id}:
+    get:
+      tags:
+        - "roles"
+      description: Obtiene el la información de un Rol particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Rol encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Role"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    put:
+      tags:
+        - "roles"
+      description: Actualiza la información completa de un Rol particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Rol actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Role"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    patch:
+      tags:
+        - "roles"
+      description: Actualiza la información parcial de un Rol particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Rol actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Role"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    delete:
+      tags:
+        - "roles"
+      description: Elimina la información de un Rol particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Rol eliminado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/permissions:
+    get:
+      tags:
+        - "permissions"
+      description: Obtiene todos los Permisos
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+      responses:
+        200:
+          description: Permisos encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Permission"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    post:
+      tags:
+        - "permissions"
+      description: Agrega un nuevo Permiso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Permission"
+      responses:
+        200:
+          description: Permiso agregado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/permissions/{id}:
+    get:
+      tags:
+        - "permissions"
+      description: Obtiene el la información de un Permiso particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Permiso encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Permission"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    put:
+      tags:
+        - "permissions"
+      description: Actualiza la información completa de un Permiso particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Permiso actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Permission"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    patch:
+      tags:
+        - "permissions"
+      description: Actualiza la información parcial de un Permiso particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Permiso actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Permission"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    delete:
+      tags:
+        - "permissions"
+      description: Elimina la información de un Permiso particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Permiso eliminado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/permission_assignment:
+    post:
+      tags:
+        - "permission_assignment"
+      description: Agrega un nuevo Permiso a un Rol
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PermissionAssignment"
+      responses:
+        200:
+          description: Permiso asignado a un Rol
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /auth/permission_assignment/{id}:
+    delete:
+      tags:
+        - "permission_assignment"
+      description: Elimina la información de un Permiso asignado a un Rol particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Permiso asignado a un Rol eliminado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /products:
+    get:
+      tags:
+        - "products"
+      description: Obtiene todos los Productos
+      parameters:
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/limitParam"
+      responses:
+        200:
+          description: Empleados encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    post:
+      tags:
+        - "products"
+      description: Agrega un nuevo Producto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
+      responses:
+        200:
+          description: Producto agregado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+  /products/{id}:
+    get:
+      tags:
+        - "products"
+      description: Obtiene el la información de un Producto particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Product"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    put:
+      tags:
+        - "products"
+      description: Actualiza la información completa de un Producto particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Product"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    patch:
+      tags:
+        - "products"
+      description: Actualiza la información parcial de un Producto particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Product"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+    delete:
+      tags:
+        - "products"
+      description: Elimina la información de un Producto particular
+      parameters:
+        - $ref: "#/components/parameters/idParam"
+      responses:
+        200:
+          description: Producto eliminado
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+
+components:
+  schemas:
+    Token:
+      description: Esquema Token
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImVmdWVudGVzIiwiZGlzcGxheV9uYW1lIjoiRWRnYXIgRnVlbnRlcyIsImVtYWlsIjoiZWZ1ZW50ZXNAc29mdHRlay5jb20iLCJ1c2VyX2VuYWJsZWQiOnRydWUsInJvbGUiOiJhZG1pbmlzdHJhdG9yIiwicm9sZV9lbmFibGVkIjp0cnVlLCJpYXQiOjE1Mzg3MDQzNTAsImV4cCI6MTUzODcwNzk1MH0.vXWExtk9zt-c1A-oVAH16LSgYpDTTrLv7a-_f_YkT50
+
+    Login:
+      description: Esquema Login
+      properties:
+        email:
+          type: string
+          example: juan.perez@mail.com
+        password:
+          type: string
+          example: mysecretpassword
+
+    UserProfile:
+      description: Esquema Perfil del Usuario
+      properties:
+        username:
+          type: string
+          example: juan.perez
+        display_name:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          example: juan.perez@mail.com
+        user_enabled:
+          type: boolean
+          example: true
+        role:
+          type: string
+          example: cliente
+        role_enabled:
+          type: boolean
+          example: true
+
+    UserPermissions:
+      description: Esquema Permisos de un Usuario
+      properties:
+        user:
+          type: object
+          $ref: "#/components/schemas/UserProfile"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+
+    User:
+      description: Esquema de Usuarios
+      properties:
+        id:
+          type: string
+          example: HToSWnSWDRT
+        username:
+          type: string
+          example: juan.perez
+        display_name:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          example: juan.perez@mail.com
+        password:
+          type: string
+          example: Mysecr3$tpassword
+        enabled:
+          type: boolean
+          example: true
+        roleId:
+          type: string
+          example: YHfknIa
+
+    Role:
+      description: Esquema de Roles
+      properties:
+        id:
+          type: string
+          example: YHfknIa
+        name:
+          type: string
+          example: cliente
+        description:
+          type: string
+          example: Clientes de la Tienda
+        enabled:
+          type: boolean
+          example: true
+
+    Permission:
+      description: Esquema de Permisos
+      properties:
+        id:
+          type: string
+          example: ogMpeVs
+        code:
+          type: string
+          example: CLIENTE:CREATE
+        description:
+          type: string
+          example: Crear Clientes
+
+    PermissionAssignment:
+      description: Esquema de Permisos asignados a un Rol
+      properties:
+        id:
+          type: string
+          example: "8_cUqPy"
+        roleId:
+          type: string
+          example: YHfknIa
+        permissionId:
+          type: string
+          example: ogMpeVs
+
+    Product:
+      description: Esquema de Producto
+      properties:
+        id:
+          type: string
+          example: CQkDCwIKDAI
+        name:
+          type: string
+          example: Producto 01
+        cost:
+          type: number
+          example: 50
+
+  parameters:
+    pageParam:
+      name: _page
+      in: query
+      description: Página solicitada de los resultados
+      required: false
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+        example: 1
+    limitParam:
+      name: _limit
+      in: query
+      description: Máximo de registros por página
+      required: false
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+        example: 20
+
+    idParam:
+      in: path
+      name: id
+      required: true
+      description: Id
+      schema:
+        type: string
+        example: YHfknIa
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    400:
+      description: "Error: Access token is missing or invalid"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: 400
+              message:
+                type: string
+                example: "Error: Access token is missing or invalid"
+    401:
+      description: "Error: Access token is revoked"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: 401
+              message:
+                type: string
+                example: "Error: Access token is revoked"
+
+security:
+  - bearerAuth: []

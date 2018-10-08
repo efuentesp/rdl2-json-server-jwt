@@ -12,10 +12,10 @@ const router_auth = jsonServer.router("./auth.json");
 const authdb = JSON.parse(fs.readFileSync("./auth.json", "UTF-8"));
 const bizdb = JSON.parse(fs.readFileSync("./database.json", "UTF-8"));
 
-const user_schema = require("./schemas/users");
-const role_schema = require("./schemas/roles");
-const permission_schema = require("./schemas/permissions");
-const permission_assignment_schema = require("./schemas/permission_assignment");
+const user_schema = require("./schemas/auth/users");
+const role_schema = require("./schemas/auth/roles");
+const permission_schema = require("./schemas/auth/permissions");
+const permission_assignment_schema = require("./schemas/auth/permission_assignment");
 
 server.use(bodyParser.urlencoded({ extended: true }));
 server.use(bodyParser.json());
@@ -50,7 +50,7 @@ function isAuthenticated({ email, password }) {
   );
 }
 
-function findUserInfo(email) {
+function findUserProfile(email) {
   var permissions = [];
   const user = _.find(authdb.users, u => u.email === email);
   const role = _.find(authdb.roles, r => r.id === user.roleId);
@@ -61,7 +61,7 @@ function findUserInfo(email) {
   permission_assignment.forEach(pa => {
     permissions.push(_.find(authdb.permissions, p => p.id === pa.permissionId));
   });
-  const user_info = {
+  const user_profile = {
     user: {
       username: user.username,
       display_name: user.display_name,
@@ -73,7 +73,7 @@ function findUserInfo(email) {
     permissions
   };
 
-  return user_info;
+  return user_profile;
 }
 
 function isPermissionFound(token, permission) {
@@ -84,16 +84,16 @@ function isPermissionFound(token, permission) {
   return typeof permission_found == "undefined" ? false : true;
 }
 
-function hasAuthority(resource, operation, user_info) {
+function hasAuthority(resource, operation, user_profile) {
   const permission = resource + ":" + operation;
   const all_operations = resource + ":*";
   const superuser = "*:*";
 
   //console.log(permission);
 
-  if (!isPermissionFound(user_info, permission)) {
-    if (!isPermissionFound(user_info, all_operations)) {
-      if (!isPermissionFound(user_info, superuser)) {
+  if (!isPermissionFound(user_profile, permission)) {
+    if (!isPermissionFound(user_profile, all_operations)) {
+      if (!isPermissionFound(user_profile, superuser)) {
         return false;
       }
     }
@@ -109,12 +109,12 @@ server.post("/api/v1/auth/login", (req, res) => {
       .json({ status: 401, message: "Error: Incorrect email or password" });
     return;
   }
-  const user_info = findUserInfo(email);
-  const access_token = createToken(user_info.user);
+  const user_profile = findUserProfile(email);
+  const access_token = createToken(user_profile.user);
   res.status(200).json({ access_token });
 });
 
-server.get("/api/v1/auth/info", (req, res) => {
+server.get("/api/v1/auth/profile", (req, res) => {
   if (
     req.headers.authorization === undefined ||
     req.headers.authorization.split(" ")[0] !== "Bearer"
@@ -129,10 +129,10 @@ server.get("/api/v1/auth/info", (req, res) => {
   try {
     const decoded_token = verifyToken(req.headers.authorization.split(" ")[1]);
 
-    const user_info = findUserInfo(decoded_token.email);
+    const user_profile = findUserProfile(decoded_token.email);
     res
       .status(200)
-      .json({ user: user_info.user, permissions: user_info.permissions });
+      .json({ user: user_profile.user, permissions: user_profile.permissions });
   } catch (err) {
     res
       .status(401)
@@ -173,7 +173,7 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
       resources.push(q.query._expand.toUpperCase());
     }
 
-    const user_info = findUserInfo(decoded_token.email);
+    const user_profile = findUserProfile(decoded_token.email);
 
     let operation;
     switch (req.method) {
@@ -197,7 +197,7 @@ server.use(/^(?!\/auth).*$/, (req, res, next) => {
     }
 
     resources.forEach(r => {
-      if (!hasAuthority(r.toUpperCase(), operation, user_info)) {
+      if (!hasAuthority(r.toUpperCase(), operation, user_profile)) {
         res.status(404).json({
           status: 404,
           message: `You don't have permission (${r.toUpperCase()}:${operation})`
